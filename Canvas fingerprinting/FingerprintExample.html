@@ -1,0 +1,51 @@
+<!DOCTYPE HTML>
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/node-forge@0.7.0/dist/forge.min.js"></script>
+<html>
+   <head>
+   </head>
+   <body>
+      <div id='yooo'></div>
+      <img id="imageID">
+         <canvas id="myCanvas" style="width:400;height:400;">
+         </canvas>
+      <script>
+        window.addEventListener('load',fingerprint_canvas);
+            function fingerprint_canvas() {
+              "use strict";
+              let  canvas, strCText, strText, strOut;
+              canvas = null;
+              strCText = null;
+              strText = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+              strOut = null;
+              canvas = document.createElement('canvas');
+              strCText = canvas.getContext('2d');
+              strCText.textBaseline = "top";
+              strCText.font = "16px 'Arial'";
+              strCText.textBaseline = "alphabetic";
+              strCText.fillStyle = "#f60";
+              strCText.fillStyle = "#069";
+              strCText.fillText(strText, 2, 15);
+              strCText.fillStyle = "rgba(102, 204, 0, 0.7)";
+              strCText.fillText(strText, 4, 17);
+              strOut = canvas.toDataURL();
+              document.getElementById('imageID').src = strOut;
+              
+              let md = forge.md.sha256.create();
+              md.update(strOut);
+              console.log(md.digest().toHex());
+              let hashed_img = md.digest().toHex();
+              $.ajax({
+                type: "POST",
+                url: "http://localhost/Save_To_Server.php",
+                data: { 
+                   hashed_img: hashed_img
+                }
+                 }).done(function(response) {
+                     console.log('saved: ' + response); 
+                 });
+
+            }
+      </script>
+   </body>
+</html>
