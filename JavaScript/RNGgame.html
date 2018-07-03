@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+    body{
+      height:700px;
+    }
+    #game2_container{
+      background: aqua;
+      height:100%;
+      width:100%;
+	  }
+    #start_game{
+      display:grid;
+      grid-template-rows: 100px 100px;
+      grid-gap: 30px;
+      grid-auto-rows: 200px;
+      justify-content: center;
+      height:100%;
+      align-content: center;
+    }
+    .start_text{
+      align-self: center;
+    }
+    .button{
+      display: block;
+      background-color: green;
+      color: white;
+      width: auto;
+      height: 30px;
+      padding: 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      justify-self: center;
+      align-self: center;
+      align-items: center;
+
+    }
+    #playing_game{
+      display:grid;
+      grid-template-rows: auto auto auto max-content auto auto auto;
+      grid-template-columns: auto  max-content  auto;
+      
+      height: 100%;
+      grid-gap:10px;
+    }
+    .box:nth-child(){
+     // grid-row:auto;
+      //grid-column: auto;
+    }
+    #game_frame{
+      grid-row:  4;
+      grid-column: 2;
+   	  //background: yellow;
+      display: grid;
+      grid-gap:20px;
+      grid-template:
+      'cd cl'
+      'field field'
+      'sbmt pause';
+    }
+    #submit_button{
+    	grid-area: sbmt;
+    }
+    #countdown_box{
+    	grid-area: cd;
+    }
+    #pause_button{
+    	grid-area: pause;
+    }
+    #clock_box{
+    	grid-area: cl;
+    }
+    #game_field{
+    	grid-area: field;
+    }
+	  .pair{
+	  background: purple;
+	  display: grid;
+	  //grid-gap:20px;
+	  grid-template-rows: 1fr;
+	  grid-template-columns: 1fr 1fr;
+	  justify-content: center;
+	  }
+	  .right{
+	  background: green;
+	  }
+	  .wrong{
+	  background: red;
+	  }
+	  .number{
+	  	text-align: center;
+	  }
+	  #game_field{
+	  background: black;
+      }
+      #continue_game{
+     	display:grid;
+     	justify-content: center;
+     	height:100%;
+     	//align-content: center;
+      }
+      #finished_game{
+      	display:grid;
+     	justify-content: center;
+     	height:100%;
+     	font-size:30px
+     	//align-content: center;
+      }
+      </style>
+      <script>
+             window.addEventListener('load',function(){
+             class Game{
+               constructor (difficulty,max_games){
+                 this.inputs = [];
+                 this.boxes = [];
+                 this.max_games = max_games;
+                 this._status = 0;
+                 this.difficulty = difficulty;
+                 this.time = 0;
+                 this.game_frame = '';
+                 this.time_flow = 0;
+                 this.seconds = 0;
+                 this.guessed = 0;
+                 this.answers = [];
+                 this.numbers = [];
+                 this.mgame_cnt = 0;
+                 this.time_countdown = 3;
+                 this.time_difficulty = this.timer();
+                 this.clock_box = '';
+                 this.html_container = this.html();
+                 
+			  
+			  //in constructor order of definition matters a lot !!!!!!!! html has to be last so it can work;
+               }
+               set status(status) {this._status = status;}
+               get status() {return this._status;}
+			
+               html()
+               {
+                 let container = document.createElement('div');
+                 container.id = 'game2_container';
+			  
+                 let start_game = document.createElement('div');
+                 start_game.id = 'start_game';
+			  
+                 let start_button = document.createElement('div');
+                 start_button.className = 'button';
+                 start_button.innerHTML = 'Start Game';  
+                 start_button.addEventListener('click', (e) => this.flow());
+			  
+                 let start_text = document.createElement('div');
+                 start_text.className = 'start_text';
+                 start_text.innerHTML = 'When you feel ready you can start the game :)';
+			  
+                 start_game.appendChild(start_text);
+                 start_game.appendChild(start_button);
+                 container.appendChild(start_game);
+                 let continue_game = document.createElement('div');
+                 continue_game.id = 'continue_game';
+			  
+                 let continue_button = document.createElement('div');
+                 continue_button.className = 'button';
+                 continue_button.innerHTML = 'Continue Game';
+                 continue_button.addEventListener('click', (e) => this.flow());
+			  
+                 let continue_text = document.createElement('div');
+                 continue_text.className = 'continue_text';
+			  
+                 continue_game.appendChild(continue_text);
+                 continue_game.appendChild(continue_button);
+                 continue_game.style.display = 'none';
+                 container.appendChild(continue_game);
+                 
+                 let finished_game = document.createElement('div');
+                 finished_game.id = 'finished_game';
+			  
+                 let finished_text = document.createElement('div');
+                 finished_text.className = 'finished_text';
+                 finished_text.innerHTML = 'Congratulations! You have finished the game :)';
+			  
+                 finished_game.appendChild(finished_text);
+                 finished_game.style.display = 'none';
+                 container.appendChild(finished_game);
+                 let playing_game = document.createElement('div');
+                 playing_game.id = 'playing_game';
+                 container.appendChild(playing_game);				  
+                 this.game_frame = document.createElement('div');
+                 this.game_frame.id = 'game_frame';
+			  
+                 let submit_button = document.createElement('div');
+                 submit_button.id = 'submit_button';
+                 submit_button.innerHTML = 'Submit Result';
+                 submit_button.className = 'button';
+                 submit_button.addEventListener('click', (e) => this.flow());
+                 
+                 this.game_frame.appendChild(submit_button);
+                 let countdown_box = document.createElement('div');
+                 countdown_box.id = 'countdown_box';
+                 this.game_frame.appendChild(countdown_box);
+                 let pause_button = document.createElement('div');
+                 pause_button.id = 'pause_button';
+                 pause_button.innerHTML = 'Pause Game';
+                 pause_button.className = 'button';
+                 pause_button.addEventListener('click', (e) => this.flow('paused'));
+                 this.game_frame.appendChild(pause_button);
+			  
+                 let game_field = document.createElement('div');
+                 game_field.id = 'game_field';
+                 
+                 this.clock_box = document.createElement('span');
+                 this.clock_box.id = 'clock';
+                 this.game_frame.appendChild(this.clock_box);
+                 let element;
+                 for (let i = 0; i<this.numbers_count();i++)
+                 {
+                   let pair = document.createElement('div');
+                   pair.className = 'pair';
+                   let output = document.createElement('div');
+                   output.className = 'number';
+                   pair.appendChild(output); 
+                   this.inputs[i] = document.createElement('input');
+                   pair.appendChild(this.inputs[i]);
+                   game_field.appendChild(pair);
+                 }
+			          this.game_frame.appendChild(game_field);
+                 for (let i =0;i<this.max_games;i++)
+                 {
+                   element = document.createElement('div');
+                   this.boxes[i] = element;
+                   this.boxes[i].className = 'box';
+                   playing_game.appendChild(element);
+                 }
+                 this.game_frame.style.display = 'none';
+			 
+                 playing_game.appendChild(this.game_frame)
+                 return container;
+               }
+               getAnswers(){
+                 for(let i = 0;i < this.numbers_count();i++){
+                   this.answers[i] = this.game_frame.lastChild.childNodes[i].lastChild;
+                 }
+               }
+              
+               clock(){
+			          console.log(this.clock_box);
+                 this.time = setInterval(() => {
+                 this.seconds++;
+                 this.clock_box.innerHTML = this.format_time();
+                 }, 100)
+               }
+               format_time(){
+                       let i = this.seconds
+                       let s = Math.floor(i / 10)
+                       let m = Math.floor(s / 60)
+                       return `${m}:${s % 60}:${i % 10}`   
+                     } 
+               generate_numbers(size,level){
+               for(let i = 0; i < this.max_games; i++){
+                 this.numbers[i] = range(10**(size-1), 10**size-1,level);
+                 } 
+               }
+               timer(){
+                 if(this.difficulty == 'easy')
+                 {
+                   return 1000;
+                 }
+                 if(this.difficulty == 'medium')
+                 {
+                   return 1000;
+                 }
+                 if(this.difficulty == 'hard')
+                 {
+                   return 500;
+                 }
+               }
+               numbers_size(){
+                 if(this.difficulty == 'easy')
+                 {
+                   return 2;
+                 }
+                 if(this.difficulty == 'medium')
+                 {
+                   return 3;
+                 }
+                 if(this.difficulty == 'hard')
+                 {
+                   return 4;
+                 }
+               }
+               numbers_count(){
+                 if(this.difficulty == 'easy')
+                 {
+                   return 2;
+                 }
+                 if(this.difficulty == 'medium')
+                 {
+                   return 3;
+                 }
+                 if(this.difficulty == 'hard')
+                 {
+                   return 3;
+                 }
+               }
+               fillBox(position){
+                 //here we dump the html in the available boxes
+                 let playing_game = document.querySelector('#playing_game');
+                 console.log(this.game_frame.lastChild.childNodes)
+                 for (let i = 0; i<this.numbers_count();i++)
+                 {
+                 	let current_pair = this.game_frame.lastChild.childNodes[i].cloneNode(true)
+                 	playing_game.childNodes[position].appendChild(current_pair); 
+                 	if(i< this.numbers_count()-1){
+                 		let br = document.createElement('br')         
+                 	playing_game.childNodes[position].appendChild(br); }
+                 }
+               }
+               resetField(){
+                 //reset the playing interface
+                 this.game_frame.lastChild.style.visibility = 'hidden';
+                 for (let i =0;i<2;i++){
+                  this.answers[i].value = null;
+                  this.answers[i].className = ''; 
+                  this.game_frame.lastChild.childNodes[i].firstChild.innerHTML = this.numbers[this.mgame_cnt][i];
+                  this.game_frame.lastChild.childNodes[i].firstChild.style.visibility = 'visible';
+                 }
+               }
+               over()
+               {
+                 //save the score(guesses/mgame_count*numbers_count)% in local storage or json
+                 this.save();
+               }
+               avg_score(scores,size){
+                 let sum = 0;
+                 for(let i = 1;i<=size;i++){
+                   sum += scores[i];
+                 }
+                 return sum/=size;
+               }
+               save(){
+                 if(localStorage.getItem('scores') === null){
+                   let scores = [];
+                   scores.push(this.guessed/(this.numbers_count()*this.max_games));
+                   scores.push(this.guessed/(this.numbers_count()*this.max_games));
+                   console.log(scores)
+                   localStorage.setItem('scores',JSON.stringify(scores));
+                 }
+                 else{
+                   let scores = JSON.parse(localStorage.getItem('scores'));
+                   scores.push(this.guessed/(this.numbers_count()*this.max_games));
+                   scores[0] = this.avg_score(scores,scores.length-1);
+                   console.log(scores);
+                   localStorage.setItem('scores',JSON.stringify(scores));
+                   console.log(JSON.parse(localStorage.getItem('scores')));
+                 }
+               }
+               load_show(){
+                 if(localStorage.getItem('scores')!== null){
+                   let scores = JSON.parse(localStorage.getItem('scores'));
+                   return scores;
+                 }
+               }
+               play(){
+                 this.getAnswers();
+			         console.log(this.answers);
+                 let helper =[];//array with binary values [1,0,1] for example
+                 for(let i =0;i < this.answers.length;i++)
+                 {
+                   if(Number(this.answers[i].value) === this.numbers[this.mgame_cnt][i]){//careful here 
+                     helper[i] = 1;
+                     this.guessed++;
+                   }
+                   else {
+                     helper[i] = 0;
+                   }
+                 }
+                  return helper;
+               }
+               
+               flow(paused=null){
+                 if(this._status == 0 && !paused){
+                   this.status = 1;
+                   this.generate_numbers(this.numbers_size(),this.numbers_count());
+                   this.display('playing');
+                   this.clock();
+                 }
+                 else if(this._status == 1 && !paused){
+                   //play()
+                   this.display('playing', this.play());
+                   if (this.mgame_cnt == (this.max_games-1)){
+                     //finished
+                     this.status = 3;
+                     this.display('finished');
+                     this.over();
+                   }
+				          else this.mgame_cnt++;
+                 }
+                 else if(this._status == 1 && paused){
+                   //pause state
+                   this.status = 2;
+                   this.display('paused');
+                   clearInterval(this.time);
+                   //stop clock
+                 }
+                 else if(this.status == 2)
+                 {
+                   this.status = 1;
+                   this.display('continue');
+                   this.clock();
+                 }
+               }
+               display(page,guessed_array=null){
+                 let start_game = document.querySelector('#start_game');
+                 let playing_game = document.querySelector('#game_frame');
+                 let paused_game = document.querySelector('#continue_game');
+                 let finished_game = document.querySelector('#finished_game');
+                 if(page == 'playing' && !guessed_array){
+                 	for (let i =0;i<this.numbers_count();i++){
+                 		this.game_frame.lastChild.childNodes[i].firstChild.innerHTML = this.numbers[0][i];
+                 	}
+                   this.game_frame.lastChild.style.visibility = 'hidden';
+                   //this.resetField();
+                   countdown();
+                   start_game.style.display = 'none';
+                   playing_game.style.display = 'grid';
+                 }
+                 else if(page == 'playing' && guessed_array)
+                 {
+                 	for (let i =0; i<guessed_array.length;i++){
+                 		if (guessed_array[i]){
+                 			console.log(this.answers[i].value)
+						          this.answers[i].className = 'right';
+                 		}
+                 		else{
+                 			console.log(this.answers[i].value)
+                 			this.answers[i].className = 'wrong';
+                 		}
+                 	}
+                 	//this.animate();
+                   //this.dumpOnHTML(position);
+                   let self = this;
+                   let submitt = document.querySelector('#submit_button');
+                   submitt.style.visibility = 'hidden';
+                   this.fillBox(this.mgame_cnt);
+                   setTimeout(function (){ self.resetField()},3000);
+                   countdown();
+				
+                 } 
+                 else if(page == 'paused' && !guessed_array)
+                 {
+                   playing_game.style.display = 'none';
+                   paused_game.style.display = 'flex';
+                 }
+			  else if(page == 'continue' && !guessed_array)
+                 {
+                   paused_game.style.display = 'none';
+                   playing_game.style.display = 'grid';
+                 }
+                 else if(page == 'finished' && !guessed_array)
+                 {
+                   playing_game.style.display = 'none';
+                   finished_game.style.display = 'flex';
+                 }
+               }
+             }
+			
+			
+             function rng(n1 = start, n2 = stop){
+               if (n1 <= n2){
+                 let num = Math.floor(Math.random() * (n2 - n1 + 1) + n1);
+                 return num;
+               } else 
+                 return NaN;
+             }
+             function range(n1 = start, n2 = stop, len = length, result = []){
+               if (n2 - n1 < len - 1){
+                 return 'error';
+               } else if (result.length == len){
+                 return result;
+               } else {
+                 let num = rng(n1, n2);
+                 for (n of result){
+                   if (num == n){
+                     return range(n1, n2, len, result);
+                   }
+                 }
+                 result.push(num);
+                 return range(n1, n2, len, result);
+               }
+             }
+             function timer(to){
+               if (to == 'start'){
+                 startTime = Date.now();
+               }
+               if (to == 'stop'){
+                 endTime = Date.now();
+                 time = (endTime - startTime) / 1000;
+               }
+             }
+			       let diff = 'easy';
+             let tester = new Game(diff,20);
+             document.body.appendChild(tester.html_container);
+             function countdown(){
+                 let box = document.querySelector('#countdown_box');
+                 //HERE WE CAN MAKE THE HIDDEN BOXES BORDERS IN GREEN SO THE PLAYER CAN FOCUS ON THEM BEFORE THEY APPEAR
+                 if (tester.time_countdown>0){
+                   box.innerHTML = tester.time_countdown;
+                   tester.time_countdown--;
+                   setTimeout(countdown, 1000)
+                 }
+                 else
+                 {
+                   //here we make the pairs visible
+                   tester.time_countdown = 3;
+                   let game_field = document.querySelector('#game_field');
+                   box.style.display = 'none';
+                   game_field.style.visibility = 'visible';
+                   setTimeout(playAnimation,tester.timer());
+
+                 }
+             }
+             function playAnimation(){
+                   for(let i = 0;i<tester.numbers_count();i++){
+                     tester.game_frame.lastChild.childNodes[i].firstChild.style.visibility = 'hidden';
+                   }
+                   let submitt = document.querySelector('#submit_button');
+                   submitt.style.visibility = 'visible';
+               }
+             });
+        </script>
+    <body>
+    </body>
+  </head>
+</html>
